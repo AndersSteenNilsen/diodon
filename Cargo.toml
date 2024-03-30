@@ -12,3 +12,16 @@ num-integer = "0.1.46"
 num-traits = "0.2.18"
 rand = "0.8.5"
 rsa = "0.9.6"
+
+[profile.release]
+opt-level = 3
+debug = false
+split-debuginfo = '...'  # Platform-specific.
+strip = "none"
+debug-assertions = false
+overflow-checks = false
+lto = false
+panic = 'unwind'
+incremental = false
+codegen-units = 16
+rpath = false
