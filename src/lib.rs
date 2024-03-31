@@ -1,3 +1,6 @@
+#![feature(test)]
+extern crate test;
+
 use std::time::Instant;
 
 use num_bigint::BigUint;
@@ -95,12 +98,9 @@ fn diodon_non_privileged(
     hash_bytes_size: usize,
 ) -> Vec<u8> {
     let x = BigUint::from_bytes_le(cipher);
-    let mut v: Vec<BigUint> = Vec::<BigUint>::with_capacity(m);
-    v.push(x);
     let start: Instant = Instant::now();
-    for i in 1..m {
-        v.push(util::squaring(&v[i - 1], time_complexity, rsa_n));
-    }
+    let v = util::memory_blocks(&x, m, time_complexity, rsa_n);
+
     println!("Time elapsed in vector_pushing() is: {:?}", start.elapsed());
     let start: Instant = Instant::now();
 
@@ -161,8 +161,8 @@ mod tests {
         let p = BigUint::parse_bytes(b"138154375592216506317406833347480794151135359156985136226058739441317232969359215666883048156303905347167585362049791808140291742161041436935911667281520624494327845377621238269655349853869338664638587537443448410326271340862757680139090487799781391799061369299343370912316229801139344805020703321280063177759", 10).unwrap();
         let rsa_n = &p * &q;
         let cipher: &[u8] = b"Hello Diodon";
-        let m = 4_000;
-        let l = 4_000;
+        let m = 4_000usize;
+        let l = 4_000usize;
         let u_bytes: usize = 16; //128 bits
         let time_complexity = 2048;
         let hashed_easy = diodon_privileged(cipher, &p, &q, m, l, time_complexity, u_bytes);
