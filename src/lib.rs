@@ -89,6 +89,14 @@ pub fn non_priviledged(cipher: &[u8], public_key: PublicKey, params: &Params) ->
     )
 }
 
+fn from_vec_to_32_bytes(mut vec: Vec<u8>) -> [u8; 32] {
+    let mut arr = [0u8; 32];
+    vec.truncate(32);
+    vec.resize(32, 0);
+    arr.copy_from_slice(&vec);
+    arr
+}
+
 fn diodon_non_privileged(
     cipher: &[u8],
     rsa_n: &BigUint,
@@ -104,13 +112,13 @@ fn diodon_non_privileged(
     println!("Time elapsed in vector_pushing() is: {:?}", start.elapsed());
     let start: Instant = Instant::now();
 
-    let mut s_bytes = v.last().unwrap().to_bytes_le();
+    let mut s_bytes: [u8; 32]  = from_vec_to_32_bytes(v.last().unwrap().to_bytes_le());
+    
     let mut j: usize;
     for _i in 0..l {
         j = (BigUint::from_bytes_le(&s_bytes) % m).try_into().unwrap();
         j %= m;
-        s_bytes.extend(v[j].to_bytes_le().iter());
-        s_bytes = blake3::hash(&s_bytes).as_bytes().to_vec();
+        s_bytes = *blake3::keyed_hash(&s_bytes, &v[j].to_bytes_le()).as_bytes();
     }
     println!("Time elapsed in L() is: {:?}", start.elapsed());
     s_bytes[s_bytes.len() - hash_bytes_size..].to_vec()
@@ -131,8 +139,9 @@ fn diodon_privileged(
     let n = rsa_p * rsa_q;
     let two = BigUint::from(2u32);
     let e = two.modpow(&exponent, &phi_n);
-    let mut s_bytes = x.modpow(&e, &n).to_bytes_le();
 
+    let mut s_bytes: [u8; 32]  = from_vec_to_32_bytes(x.modpow(&e, &n).to_bytes_le());
+    
     let start_l = Instant::now();
     let mut j: BigUint;
     let mut x_ej: BigUint;
@@ -143,8 +152,8 @@ fn diodon_privileged(
             .modpow(&j, &phi_n)
             .modpow(&time_complexity.into(), &phi_n);
         x_ej = x.modpow(&e_j, &n);
-        s_bytes.extend(x_ej.to_bytes_le().iter());
-        s_bytes = blake3::hash(&s_bytes).as_bytes().to_vec();
+        let s_input = x_ej.to_bytes_le();
+        s_bytes =  *blake3::keyed_hash(&s_bytes, &s_input).as_bytes();
     }
     let duration = start_l.elapsed();
     println!("Time elapsed in privileged L() is: {:?}", duration);
