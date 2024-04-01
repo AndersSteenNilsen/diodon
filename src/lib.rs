@@ -35,11 +35,11 @@ pub fn fast_params() -> Params {
 // Params for Dioidon.
 // TODO: Add hash function as a param.
 pub struct Params {
-    m: usize,
-    l: usize,
-    time_complexity: usize,
+    pub m: usize,
+    pub l: usize,
+    pub time_complexity: usize,
     pub key_bit_size: usize,
-    hash_bytes_size: usize,
+    pub hash_bytes_size: usize,
 }
 
 pub struct PublicKey {
@@ -104,13 +104,12 @@ fn diodon_non_privileged(
     println!("Time elapsed in vector_pushing() is: {:?}", start.elapsed());
     let start: Instant = Instant::now();
 
-    let mut s_bytes = v.last().unwrap().to_bytes_be();
-
+    let mut s_bytes = v.last().unwrap().to_bytes_le();
     let mut j: usize;
     for _i in 0..l {
-        j = (BigUint::from_bytes_be(&s_bytes) % m).try_into().unwrap();
+        j = (BigUint::from_bytes_le(&s_bytes) % m).try_into().unwrap();
         j %= m;
-        s_bytes.extend(v[j].to_bytes_be().iter());
+        s_bytes.extend(v[j].to_bytes_le().iter());
         s_bytes = blake3::hash(&s_bytes).as_bytes().to_vec();
     }
     println!("Time elapsed in L() is: {:?}", start.elapsed());
@@ -132,19 +131,19 @@ fn diodon_privileged(
     let n = rsa_p * rsa_q;
     let two = BigUint::from(2u32);
     let e = two.modpow(&exponent, &phi_n);
-    let mut s_bytes = x.modpow(&e, &n).to_bytes_be();
+    let mut s_bytes = x.modpow(&e, &n).to_bytes_le();
 
     let start_l = Instant::now();
     let mut j: BigUint;
     let mut x_ej: BigUint;
     let mut e_j: BigUint;
     for _i in 0..l {
-        j = BigUint::from_bytes_be(&s_bytes) % m;
+        j = BigUint::from_bytes_le(&s_bytes) % m;
         e_j = two
             .modpow(&j, &phi_n)
             .modpow(&time_complexity.into(), &phi_n);
         x_ej = x.modpow(&e_j, &n);
-        s_bytes.extend(x_ej.to_bytes_be().iter());
+        s_bytes.extend(x_ej.to_bytes_le().iter());
         s_bytes = blake3::hash(&s_bytes).as_bytes().to_vec();
     }
     let duration = start_l.elapsed();
