@@ -10,6 +10,8 @@ use rsa::{
 };
 use util::from_biguint_dig_to_biguint;
 
+use crate::util::crt_pow_mod;
+
 mod util;
 
 pub fn conservative_params() -> Params {
@@ -112,8 +114,8 @@ fn diodon_non_privileged(
     println!("Time elapsed in vector_pushing() is: {:?}", start.elapsed());
     let start: Instant = Instant::now();
 
-    let mut s_bytes: [u8; 32]  = from_vec_to_32_bytes(v.last().unwrap().to_bytes_le());
-    
+    let mut s_bytes: [u8; 32] = from_vec_to_32_bytes(v.last().unwrap().to_bytes_le());
+
     let mut j: usize;
     for _i in 0..l {
         j = (BigUint::from_bytes_le(&s_bytes) % m).try_into().unwrap();
@@ -140,8 +142,8 @@ fn diodon_privileged(
     let two = BigUint::from(2u32);
     let e = two.modpow(&exponent, &phi_n);
 
-    let mut s_bytes: [u8; 32]  = from_vec_to_32_bytes(x.modpow(&e, &n).to_bytes_le());
-    
+    let mut s_bytes: [u8; 32] = from_vec_to_32_bytes(x.modpow(&e, &n).to_bytes_le());
+
     let start_l = Instant::now();
     let mut j: BigUint;
     let mut x_ej: BigUint;
@@ -151,9 +153,9 @@ fn diodon_privileged(
         e_j = two
             .modpow(&j, &phi_n)
             .modpow(&time_complexity.into(), &phi_n);
-        x_ej = x.modpow(&e_j, &n);
+        x_ej = crt_pow_mod(&x, &e_j, rsa_p, rsa_q);
         let s_input = x_ej.to_bytes_le();
-        s_bytes =  *blake3::keyed_hash(&s_bytes, &s_input).as_bytes();
+        s_bytes = *blake3::keyed_hash(&s_bytes, &s_input).as_bytes();
     }
     let duration = start_l.elapsed();
     println!("Time elapsed in privileged L() is: {:?}", duration);

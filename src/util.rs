@@ -109,3 +109,44 @@ mod tests {
 pub fn from_biguint_dig_to_biguint(rsa_biguint: &RsaBigUint) -> BigUint {
     BigUint::from_bytes_le(&rsa_biguint.to_bytes_le())
 }
+
+// Calculate q^-1 mod p
+fn inverse(p: &BigUint, q: &BigUint) -> BigUint {
+    p.modpow(&(q - 2usize), q)
+}
+#[test]
+fn test_inverse() {
+    let p = BigUint::from_u8(31u8).unwrap();
+    let q = BigUint::from_u8(37u8).unwrap();
+    let expected = BigUint::from_u8(6u8).unwrap();
+    assert_eq!(inverse(&p, &q), expected);
+}
+
+// Calculate c^d mod p * q
+pub fn crt_pow_mod(c: &BigUint, d: &BigUint, p: &BigUint, q: &BigUint) -> BigUint {
+    let d_p = d % (p - 1usize);
+    let d_q = d % (q - 1usize);
+    let q_inv = inverse(q, p);
+
+    let m_1 = c.modpow(&d_p, p);
+    let m_2 = c.modpow(&d_q, q);
+    let m_diff = if m_1 >= m_2 {
+        m_1 - &m_2
+    } else {
+        (2usize * p + &m_1) - &m_2
+    };
+    let h = q_inv * m_diff % p;
+    (m_2 + h * q) % (p * q)
+}
+#[test]
+fn test_crt_pow_mod() {
+    let c = BigUint::from_u8(5u8).unwrap();
+    let d = BigUint::from_u8(200u8).unwrap();
+
+    let p = BigUint::from_u8(37u8).unwrap();
+    let q = BigUint::from_u8(31u8).unwrap();
+
+    let expected = BigUint::from_u16(1048u16).unwrap();
+
+    assert_eq!(crt_pow_mod(&c, &d, &p, &q), expected);
+}

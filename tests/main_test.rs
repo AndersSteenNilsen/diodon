@@ -26,7 +26,7 @@ fn conservative_diodon_hash() {
 
 #[test]
 fn dummy_param_diodon_hash() {
-    let dummy_params: Params = Params{
+    let dummy_params: Params = Params {
         m: 40,
         l: 11,
         time_complexity: 1,
@@ -37,8 +37,7 @@ fn dummy_param_diodon_hash() {
     let (private_key, public_key) = diodon::generate_keys(dummy_params.key_bit_size);
     println!("{:?}", private_key);
     let hash_priviledgeged: Vec<u8> = diodon::privileged(cipher, private_key, &dummy_params);
-    let hash_non_privileged: Vec<u8> =
-        diodon::non_priviledged(cipher, public_key, &dummy_params);
+    let hash_non_privileged: Vec<u8> = diodon::non_priviledged(cipher, public_key, &dummy_params);
     assert_eq!(hash_priviledgeged, hash_non_privileged);
     println!("{:?}\n{:?}", hash_non_privileged, hash_priviledgeged);
 }
